@@ -16,6 +16,7 @@ import Background from './examples/Background';
 import Downloads from './examples/Downloads';
 import Uploads from './examples/Uploads';
 import Injection from './examples/Injection';
+import RequestInterception from './examples/RequestInterception';
 
 const TESTS = {
   Alerts: {
@@ -66,22 +67,30 @@ const TESTS = {
       return <Injection />;
     },
   },
+  RequestInterception: {
+    title: 'Request Interception',
+    testId: 'Request_Interception',
+    description: 'Request Interception',
+    render() {
+      return <RequestInterception />;
+    },
+  },
 };
 
 type Props = {};
-type State = {restarting: boolean, currentTest: Object};
+type State = {restarting: boolean; currentTest: Object};
 
 export default class App extends Component<Props, State> {
   state = {
     restarting: false,
-    currentTest: TESTS.Alerts,
+    currentTest: TESTS.RequestInterception,
   };
 
   _simulateRestart = () => {
     this.setState({restarting: true}, () => this.setState({restarting: false}));
   };
 
-  _changeTest = testName => {
+  _changeTest = (testName) => {
     this.setState({currentTest: TESTS[testName]});
   };
 
@@ -124,16 +133,25 @@ export default class App extends Component<Props, State> {
             title="Injection"
             onPress={() => this._changeTest('Injection')}
           />
-          {Platform.OS == "ios" && <Button
-            testID="testType_downloads"
-            title="Downloads"
-            onPress={() => this._changeTest('Downloads')}
-          />}
-          {Platform.OS === 'android' && <Button
-            testID="testType_uploads"
-            title="Uploads"
-            onPress={() => this._changeTest('Uploads')}
-          />}
+          {Platform.OS == 'ios' && (
+            <Button
+              testID="testType_downloads"
+              title="Downloads"
+              onPress={() => this._changeTest('Downloads')}
+            />
+          )}
+          {Platform.OS === 'android' && (
+            <Button
+              testID="testType_uploads"
+              title="Uploads"
+              onPress={() => this._changeTest('Uploads')}
+            />
+          )}
+          <Button
+            testID="testType_uri"
+            title="Request Intercept"
+            onPress={() => this._changeTest('RequestInterception')}
+          />
         </View>
 
         {restarting ? null : (

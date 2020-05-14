@@ -16,6 +16,7 @@ import android.os.Environment;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -71,16 +72,24 @@ import com.reactnativecommunity.webview.events.TopShouldStartLoadWithRequestEven
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+
+import kotlin.jvm.internal.Intrinsics;
+import kotlin.text.Charsets;
+import kotlin.text.StringsKt;
 
 /**
  * Manages instances of {@link WebView}
@@ -852,6 +861,47 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
 
     public void setUrlPrefixesForDefaultIntent(ReadableArray specialUrls) {
       mUrlPrefixesForDefaultIntent = specialUrls;
+    }
+
+    @TargetApi(24)
+    public String mapToString(Map map) {
+      String mapAsString = (String) map.keySet().stream().map(key -> key + "=" + map.get(key))
+        .collect(Collectors.joining(",", "{", "}"));
+      return mapAsString;
+    }
+
+    public void logSDL(String msg) {
+      Log.d("SDL WEBVIEW", msg);
+    }
+
+    @TargetApi(21)
+    @Override
+    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+      Log.d("SDL WEBVIEW", "shouldInterceptRequest called for: " + String.valueOf(request != null ? request.getUrl() : null));
+      WebResourceResponse var18;
+      if (request != null) {
+        Uri url = request.getUrl();
+        Map headers = request.getRequestHeaders();
+        Log.d("SDL WEBVIEW", "headers are:: " + mapToString(headers));
+        if (url != null) {
+          if(url.toString().contains("jquery")) {
+            logSDL("SKIPPING and returning early");
+
+            return super.shouldInterceptRequest(view, request);
+          }
+          // send URL to RN
+          String stringURL = url.toString();
+          ByteArrayInputStream responseString = new ByteArrayInputStream("HEY THIS IS A TEST!!!!!!!!".getBytes());
+
+          WebResourceResponse response = new WebResourceResponse("text/plain", "utf-8", responseString);
+//          response.setResponseHeaders();
+          Log.d("SDL WEBVIEW", "response:: " + response.toString() );
+          return response;
+
+        }
+      }
+
+      return super.shouldInterceptRequest(view, request);
     }
   }
 
