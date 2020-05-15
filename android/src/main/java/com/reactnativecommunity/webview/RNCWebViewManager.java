@@ -133,6 +133,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
   public static final int COMMAND_CLEAR_FORM_DATA = 1000;
   public static final int COMMAND_CLEAR_CACHE = 1001;
   public static final int COMMAND_CLEAR_HISTORY = 1002;
+  public static final int COMMAND_SEND_REQUEST_DATA = 1003;
 
   protected static final String REACT_CLASS = "RNCWebView";
   protected static final String HTML_ENCODING = "UTF-8";
@@ -583,6 +584,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
       .put("clearFormData", COMMAND_CLEAR_FORM_DATA)
       .put("clearCache", COMMAND_CLEAR_CACHE)
       .put("clearHistory", COMMAND_CLEAR_HISTORY)
+      .put("sendRequestData", COMMAND_SEND_REQUEST_DATA)
       .build();
   }
 
@@ -644,7 +646,17 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
       case COMMAND_CLEAR_HISTORY:
         root.clearHistory();
         break;
+      case COMMAND_SEND_REQUEST_DATA:
+        Log.d("SDL", "sendRequestData message was called");
+        sendRequestData(args);
+        break;
+
     }
+  }
+
+  @TargetApi(24)
+  public void sendRequestData(ReadableArray args) {
+    args.toArrayList().forEach(item -> Log.d("SDL", "sendRequestData message was::::" + item));
   }
 
   @Override

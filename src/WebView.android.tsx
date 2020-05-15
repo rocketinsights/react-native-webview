@@ -139,6 +139,14 @@ class WebView extends React.Component<AndroidWebViewPropsExtended, State> {
     );
   };
 
+  sendRequestData = (data: string) => {
+    UIManager.dispatchViewManagerCommand(
+      this.getWebViewHandle(),
+      this.getCommands().sendRequestData,
+      [String(data)],
+    );
+  };
+
   clearFormData = () => {
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
@@ -296,6 +304,7 @@ class WebView extends React.Component<AndroidWebViewPropsExtended, State> {
   };
 
   render() {
+    console.log('updated!!');
     const {
       onMessage,
       onShouldStartLoadWithRequest: onShouldStartLoadWithRequestProp,

@@ -90,6 +90,8 @@ public class RNCWebViewModule extends ReactContextBaseJavaModule implements Acti
     promise.resolve(result);
   }
 
+
+
   public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
 
     if (filePathCallback == null && filePathCallbackLegacy == null) {
