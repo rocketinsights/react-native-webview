@@ -22,7 +22,7 @@ Response:
             alert(responseData)
           response = JSON.stringify(responseData);
         },
-        error: e => alert(JSON.stringify(e))
+        // error: e => alert(JSON.stringify(e))
       });
       console.log("Received response", response);
       $('#response').html(response);

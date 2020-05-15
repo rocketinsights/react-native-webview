@@ -67,6 +67,7 @@ import com.reactnativecommunity.webview.events.TopLoadingFinishEvent;
 import com.reactnativecommunity.webview.events.TopLoadingProgressEvent;
 import com.reactnativecommunity.webview.events.TopLoadingStartEvent;
 import com.reactnativecommunity.webview.events.TopMessageEvent;
+import com.reactnativecommunity.webview.events.TopRequestInterceptionEvent;
 import com.reactnativecommunity.webview.events.TopShouldStartLoadWithRequestEvent;
 
 import org.json.JSONException;
@@ -563,6 +564,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
     export.put(TopShouldStartLoadWithRequestEvent.EVENT_NAME, MapBuilder.of("registrationName", "onShouldStartLoadWithRequest"));
     export.put(ScrollEventType.getJSEventName(ScrollEventType.SCROLL), MapBuilder.of("registrationName", "onScroll"));
     export.put(TopHttpErrorEvent.EVENT_NAME, MapBuilder.of("registrationName", "onHttpError"));
+    export.put(TopRequestInterceptionEvent.EVENT_NAME, MapBuilder.of("registrationName", "onNetworkRequest"));
     return export;
   }
 
@@ -865,7 +867,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
 
     @TargetApi(24)
     public String mapToString(Map map) {
-      String mapAsString = (String) map.keySet().stream().map(key -> key + "=" + map.get(key))
+      String mapAsString = (String) map.keySet().stream().map(key -> key + ":" + map.get(key))
         .collect(Collectors.joining(",", "{", "}"));
       return mapAsString;
     }
@@ -878,11 +880,12 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
       Log.d("SDL WEBVIEW", "shouldInterceptRequest called for: " + String.valueOf(request != null ? request.getUrl() : null));
-      WebResourceResponse var18;
       if (request != null) {
         Uri url = request.getUrl();
         Map headers = request.getRequestHeaders();
-        Log.d("SDL WEBVIEW", "headers are:: " + mapToString(headers));
+        // TODO: fix header serialization so can be JSON.parsed in JS
+        String headerString = mapToString(headers);
+        Log.d("SDL WEBVIEW", "headers are:: " + headerString);
         if (url != null) {
           if(url.toString().contains("jquery")) {
             logSDL("SKIPPING and returning early");
@@ -892,9 +895,17 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
           // send URL to RN
           String stringURL = url.toString();
           ByteArrayInputStream responseString = new ByteArrayInputStream("HEY THIS IS A TEST!!!!!!!!".getBytes());
+          // dispatch event
+          WritableMap eventData = Arguments.createMap();
+          eventData.putString("url", stringURL);
+          eventData.putString("headers", headerString);
+          eventData.putString("method", request.getMethod());
 
+          dispatchEvent(view, new TopRequestInterceptionEvent(view.getId(), eventData));
+
+
+          // return fake response
           WebResourceResponse response = new WebResourceResponse("text/plain", "utf-8", responseString);
-//          response.setResponseHeaders();
           Log.d("SDL WEBVIEW", "response:: " + response.toString() );
           return response;
 
@@ -1217,6 +1228,12 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
           dispatchEvent(this, new TopMessageEvent(this.getId(), eventData));
         }
       }
+    }
+
+    public void onRequest() {
+      WritableMap eventData = Arguments.createMap();
+      eventData.putString("data", "onRequest added");
+      dispatchEvent(this, new TopMessageEvent(this.getId(), eventData));
     }
 
     protected void sendDirectMessage(WritableMap data) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import {View} from 'react-native';
+import {View, Text} from 'react-native';
 
 import WebView from 'react-native-webview';
 import {HTML2} from './sampleHTML';
@@ -29,17 +29,25 @@ const HTML = `
 </html>
 `;
 
-const RequestInterception: React.FC = () => (
-  <View>
+const RequestInterception: React.FC = () => {
+  return (
     <View>
-      <View style={{height: '100%'}}>
-        <WebView
-          source={{html: HTML2}}
-          style={{backgroundColor: '#00000000'}}
-        />
+      <View>
+        <View style={{height: '100%'}}>
+          <WebView
+            source={{html: HTML2}}
+            style={{backgroundColor: '#00000000'}}
+            onNetworkRequest={(val: string) => {
+              console.log(
+                // @ts-ignore
+                `onNetworkRequest::: ${JSON.stringify(val.nativeEvent)}`,
+              );
+            }}
+          />
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 export default RequestInterception;
