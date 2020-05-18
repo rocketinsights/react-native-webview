@@ -33,31 +33,37 @@ const RequestInterception: React.FC = () => {
   const ref = React.useRef();
 
   return (
-    <View>
-      <View>
-        <View style={{height: '100%'}}>
-          <Button
-            title="click"
-            onPress={() => {
-              // @ts-ignore
-              ref.current.sendRequestData(
-                'I am request data from SDL webview ',
-              );
-            }}
-          />
-          <WebView
-            source={{html: HTML2}}
-            style={{backgroundColor: '#00000000'}}
-            ref={ref}
-            onNetworkRequest={(val: string) => {
-              console.log(
-                // @ts-ignore
-                `onNetworkRequest::: ${JSON.stringify(val.nativeEvent)}`,
-              );
-            }}
-          />
-        </View>
-      </View>
+    <View style={{height: '100%'}}>
+      <Button
+        title="click"
+        onPress={() => {
+          // @ts-ignore
+          ref.current.sendRequestData(
+            JSON.stringify({
+              // Nested objects currently throw on Java side
+              // data: {
+              //   content: 'I am request data from SDL webview ',
+              //   headers: {
+              //     'Content-Type': 'application/json',
+              //   },
+              // },
+              data: 'I am request data from SDL webview ',
+              requestId: 32,
+            }),
+          );
+        }}
+      />
+      <WebView
+        source={{html: HTML}}
+        style={{backgroundColor: '#00000000'}}
+        ref={ref}
+        onNetworkRequest={(val: string) => {
+          console.log(
+            // @ts-ignore
+            `onNetworkRequest::: ${JSON.stringify(val.nativeEvent)}`,
+          );
+        }}
+      />
     </View>
   );
 };

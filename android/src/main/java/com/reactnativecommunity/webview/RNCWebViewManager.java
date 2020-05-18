@@ -61,6 +61,7 @@ import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.uimanager.events.ContentSizeChangeEvent;
 import com.facebook.react.uimanager.events.Event;
 import com.facebook.react.uimanager.events.EventDispatcher;
+import com.google.gson.Gson;
 import com.reactnativecommunity.webview.events.TopLoadingErrorEvent;
 import com.reactnativecommunity.webview.events.TopHttpErrorEvent;
 import com.reactnativecommunity.webview.events.TopLoadingFinishEvent;
@@ -74,23 +75,21 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
-
-import kotlin.jvm.internal.Intrinsics;
-import kotlin.text.Charsets;
-import kotlin.text.StringsKt;
 
 /**
  * Manages instances of {@link WebView}
@@ -647,16 +646,31 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
         root.clearHistory();
         break;
       case COMMAND_SEND_REQUEST_DATA:
-        Log.d("SDL", "sendRequestData message was called");
         sendRequestData(args);
         break;
 
     }
   }
 
+  // This gets called with the data from RN despite name
+  // TODO: better name
   @TargetApi(24)
   public void sendRequestData(ReadableArray args) {
-    args.toArrayList().forEach(item -> Log.d("SDL", "sendRequestData message was::::" + item));
+
+    Log.d("SDL", "sendRequest Data called");
+    args.toArrayList().forEach(item -> {
+      Log.d("SDL", "sendRequest Data called with " + item);
+      Gson gson = new Gson();
+      RequestMessage message = gson.fromJson((String) item, RequestMessage.class);
+      int requestId = message.getRequestId();
+      String data = message.getData();
+      // update global hashmap with request data
+      GlobalRequestMap.requestMap.put(requestId, data);
+      String mapString = GlobalRequestMap.getRequestMapAsString();
+      Log.d("SDL", "sendRequest Data called  here is GlobalMap updated " + mapString);
+      Log.d("SDL", "sendRequest Data called requestId::: " + requestId);
+
+    });
   }
 
   @Override
@@ -751,6 +765,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
     public void setIgnoreErrFailedForThisURL(@Nullable String url) {
       ignoreErrFailedForThisURL = url;
     }
+
 
     @Override
     public void onPageFinished(WebView webView, String url) {
@@ -878,15 +893,33 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
     }
 
     @TargetApi(24)
-    public String mapToString(Map map) {
+    private String mapToString(Map map) {
       String mapAsString = (String) map.keySet().stream().map(key -> key + ":" + map.get(key))
         .collect(Collectors.joining(",", "{", "}"));
       return mapAsString;
     }
 
-    public void logSDL(String msg) {
+    private void logSDL(String msg) {
       Log.d("SDL WEBVIEW", msg);
     }
+
+    @TargetApi(24)
+    private void pollForRequestData(int requestId, Function<String, String> callback) {
+      Timer timer = new Timer();
+      TimerTask timerTask = new TimerTask() {
+        @Override
+        public void run() {
+          String data = GlobalRequestMap.getDataStringByRequestId(requestId);
+          logSDL("data from pollforRequest Data is::" + data);
+          if (!data.isEmpty()) {
+            callback.apply(data);
+            timer.cancel();
+          }
+        }
+      };
+      timer.schedule(timerTask, 1000, 1000);
+    }
+
 
     @TargetApi(21)
     @Override
@@ -899,11 +932,16 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
         String headerString = mapToString(headers);
         Log.d("SDL WEBVIEW", "headers are:: " + headerString);
         if (url != null) {
+          // TODO: how to skip script & link tags??
           if(url.toString().contains("jquery")) {
             logSDL("SKIPPING and returning early");
 
             return super.shouldInterceptRequest(view, request);
           }
+          // write request to hashmap
+          UUID guid = UUID.randomUUID();
+          GlobalRequestMap.requestMap.put(guid, null);
+
           // send URL to RN
           String stringURL = url.toString();
           ByteArrayInputStream responseString = new ByteArrayInputStream("HEY THIS IS A TEST!!!!!!!!".getBytes());
@@ -912,10 +950,14 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
           eventData.putString("url", stringURL);
           eventData.putString("headers", headerString);
           eventData.putString("method", request.getMethod());
+          eventData.putString("requestId", guid.toString());
 
           dispatchEvent(view, new TopRequestInterceptionEvent(view.getId(), eventData));
 
+          // start polling GlobalRequestMap
 
+
+          // TODO: this does not work
           // return fake response
           WebResourceResponse response = new WebResourceResponse("text/plain", "utf-8", responseString);
           Log.d("SDL WEBVIEW", "response:: " + response.toString() );
